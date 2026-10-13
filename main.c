@@ -158,7 +158,7 @@ static void cmdp(Editor *editor)
         err_exit(editor);
     }
 
-    if (putchar(editor->buffer[editor->pos - 1]) == EOF || putchar('\n') == EOF) {
+    if (putchar(editor->buffer[editor->pos - 1]) == EOF) {
         err_exit(editor);
     }
 }
