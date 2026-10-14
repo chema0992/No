@@ -27,6 +27,7 @@ static void cmdnl(Editor *editor);
 static void cmdi(Editor *editor, unsigned char value);
 static void cmdd(Editor *editor);
 static void cmdq(Editor *editor);
+static void cmdm(Editor *editor);
 static void handle_command(Editor *editor, char *command);
 static int hex_value(char ch);
 
@@ -120,6 +121,8 @@ static void handle_command(Editor *editor, char *command)
         cmdnr(editor);
     } else if (strcmp(command, "nl") == 0) {
         cmdnl(editor);
+    } else if (strcmp(command, "m") == 0) {
+        cmdm(editor);
     } else if (strcmp(command, "w") == 0) {
         cmdw(editor);
     } else if (strcmp(command, "q") == 0) {
@@ -210,6 +213,34 @@ static void cmdnl(Editor *editor)
 
     editor->context_pos = previous_pos;
     editor->buffer_len = previous_len;
+    editor->pos = 0;
+    editor->modified = 0;
+}
+
+static void cmdm(Editor *editor)
+{
+    long file_end;
+
+    if (editor->modified ||
+        editor->buffer_len != CONTEXT_SIZE ||
+        editor->context_pos < 0 ||
+        editor->context_pos > LONG_MAX - CONTEXT_SIZE) {
+        err_exit(editor);
+    }
+
+    if (fseek(editor->file, 0, SEEK_END) != 0) {
+        err_exit(editor);
+    }
+
+    file_end = ftell(editor->file);
+
+    if (file_end < 0 ||
+        file_end != editor->context_pos + CONTEXT_SIZE) {
+        err_exit(editor);
+    }
+
+    editor->context_pos += CONTEXT_SIZE;
+    editor->buffer_len = 0;
     editor->pos = 0;
     editor->modified = 0;
 }
