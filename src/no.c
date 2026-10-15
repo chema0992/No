@@ -69,7 +69,7 @@ int main(int argc, char *argv[])
         } else if (!feof(stdin)) {
             int ch;
             while ((ch = getchar()) != '\n' && ch != EOF) {
-                /* Discard the rest of an overlong command. */
+                /* 명령어 길면 과감하게 삭제. */
             }
             err_exit(&editor);
         }
@@ -90,7 +90,7 @@ static void handle_command(Editor *editor, char *command)
 {
     size_t len = strlen(command);
 
-    /* A byte-position command contains only digits followed by 'b'. */
+    /* 숫자 뒤에 b가 붙어야함 */
     if (len >= 2 && command[len - 1] == 'b') {
         int all_digits = 1;
         for (size_t i = 0; i < len - 1; i++) {
@@ -133,10 +133,10 @@ static void handle_command(Editor *editor, char *command)
         unsigned char value;
 
         if (len == 2) {
-            /* iX inserts one literal byte X; 'i ' inserts a space. */
+            /* iX로 X 삽입. i는 공백 */
             value = (unsigned char)command[1];
         } else if (len == 3 && command[1] == '\\' && command[2] == 'n') {
-            /* Use the two characters backslash+n to insert a newline byte. */
+            /* i\n으로 줄바꿈 삽입 */
             value = (unsigned char)'\n';
         } else if (len == 5 && command[1] == '\\' && command[2] == 'x' &&
                    isxdigit((unsigned char)command[3]) &&
@@ -150,7 +150,7 @@ static void handle_command(Editor *editor, char *command)
 
         cmdi(editor, value);
     } else {
-        /* Unknown or invalid commands save and exit silently. */
+        /* 모르면 과감하게 컷 */
         err_exit(editor);
     }
 }
@@ -168,7 +168,7 @@ static void cmdp(Editor *editor)
 
 static void cmdnr(Editor *editor)
 {
-    /* Editing a context or reaching a short final context means save and exit. */
+    /* 저장후 종료하세요 */
     if (editor->modified || editor->buffer_len < CONTEXT_SIZE) {
         err_exit(editor);
     }
@@ -251,7 +251,7 @@ static void cmdi(Editor *editor, unsigned char value)
         err_exit(editor);
     }
 
-    /* With no selected byte, insert at the beginning; otherwise insert after it. */
+    /* 선택된 바이트가 없으면 맨 앞에 삽입, 아니면 뒤에 삽입 */
     size_t insert_at = (editor->pos == 0) ? 0 : editor->pos;
 
     memmove(&editor->buffer[insert_at + 1],
@@ -335,7 +335,7 @@ static void cmdw(Editor *editor)
         failed = 1;
     }
 
-    /* 1. Copy all bytes before the current context. */
+    /* 현재 컨텍스트 이전의 모든 바이트를 복사 */
     for (long i = 0; !failed && i < editor->context_pos; i++) {
         int byte = fgetc(editor->file);
         if (byte == EOF || fputc(byte, temp) == EOF) {
@@ -343,13 +343,12 @@ static void cmdw(Editor *editor)
         }
     }
 
-    /* 2. Write the possibly modified current context. */
     if (!failed &&
         fwrite(editor->buffer, 1, editor->buffer_len, temp) != editor->buffer_len) {
         failed = 1;
     }
 
-    /* 3. Skip the old version of the current context. */
+    /* 현재 컨텍스트의 이전 버전 스킵 */
     for (size_t i = 0; !failed && i < CONTEXT_SIZE; i++) {
         int byte = fgetc(editor->file);
         if (byte == EOF) {
@@ -360,7 +359,7 @@ static void cmdw(Editor *editor)
         }
     }
 
-    /* 4. Copy the rest. The buffer can be reused now. */
+    /* 나머지 복사!! */
     while (!failed) {
         size_t count = fread(editor->buffer, 1, CONTEXT_SIZE, editor->file);
 
@@ -384,7 +383,7 @@ static void cmdw(Editor *editor)
         failed = 1;
     }
 
-    /* Preserve the original file's permission bits. */
+    /* 원본 파일의 권한 비트를 유지 */
     if (!failed && chmod(temp_name, original_stat.st_mode & 07777) != 0) {
         failed = 1;
     }
@@ -395,7 +394,7 @@ static void cmdw(Editor *editor)
         exit(EXIT_FAILURE);
     }
 
-    /* On Linux, rename replaces the original atomically when both are on one filesystem. */
+    /* rename으로 원본 파일명 대체 */
     if (rename(temp_name, editor->filename) != 0) {
         remove(temp_name);
         free(temp_name);

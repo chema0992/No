@@ -68,7 +68,7 @@ int main(int argc, char **argv)
     }
 }
 
-/* Read at most one context. No whole-file buffer is allocated. */
+/* 컨텍스트 하나만 읽기 */
 static int load_context(Editor *editor, off_t position)
 {
     if (position < 0 || lseek(editor->fd, position, SEEK_SET) == (off_t)-1) {
@@ -95,7 +95,6 @@ static int load_context(Editor *editor, off_t position)
     return 0;
 }
 
-/* A six-byte command array is enough for i\xHH plus the terminating NUL. */
 static int read_command(char *command, size_t capacity)
 {
     size_t length = 0;
@@ -147,7 +146,7 @@ static void handle_command(Editor *editor, char *command)
         ++length;
     }
 
-    /* N b selects byte N (one-based) in the current four-byte context. */
+    /* 바이트 선택 */
     if (length >= 2 && command[length - 1] == 'b') {
         unsigned int value = 0;
 
@@ -200,7 +199,7 @@ static void handle_command(Editor *editor, char *command)
     }
 }
 
-/* n moves forward by exactly four bytes; moving past the end saves/exits. */
+/* n은 다음 컨텍스트 */
 static void cmdn(Editor *editor)
 {
     struct stat info;
@@ -218,7 +217,7 @@ static void cmdn(Editor *editor)
     }
 }
 
-/* m creates an empty context after a full final context. */
+/* m은 새 컨텍스트 */
 static void cmdm(Editor *editor)
 {
     struct stat info;
@@ -255,7 +254,7 @@ static void cmdd(Editor *editor)
     editor->modified = 1;
 }
 
-/* Insert after the selected byte; with no selection, insert at the front. */
+/* 삽입 */
 static void cmdi(Editor *editor, unsigned char value)
 {
     size_t insert_at;
@@ -330,7 +329,6 @@ static void err_exit(Editor *editor)
     cmdw(editor);
 }
 
-/* Rewrite using one-byte copies and a tiny context buffer, then rename atomically. */
 static void cmdw(Editor *editor)
 {
     static const char suffix[] = ".nos.tmp.XXXXXX";
@@ -375,7 +373,6 @@ static void cmdw(Editor *editor)
         save_failure(editor, temp_fd, temp_name);
     }
 
-    /* Copy bytes preceding the active context. */
     for (off_t i = 0; i < editor->context_pos; ++i) {
         unsigned char value;
         if (read_one(editor->fd, &value) != 1 ||
