@@ -19,6 +19,14 @@ typedef struct {
     int modified;
 } Editor;
 
+typedef enum {
+    ERR_COMMAND,
+    ERR_POSITION,
+    ERR_CONTEXT,
+    ERR_FILE
+} ErrorCode;
+
+static void error(ErrorCode code);
 static void cmdw(Editor *editor);
 static void err_exit(Editor *editor);
 static void cmdp(Editor *editor);
@@ -158,6 +166,10 @@ static void handle_command(Editor *editor, char *command)
     }
 }
 
+static void error(ErrorCode code) {
+    fprintf(stderr, "[ERROR] %d\n", code);
+}
+
 static void cmdp(Editor *editor)
 {
     if (editor->pos < 1 || editor->pos > editor->buffer_len) {
@@ -171,9 +183,6 @@ static void cmdp(Editor *editor)
 
 static void cmdP(Editor *editor)
 {
-    if (editor->pos < 1 || editor->pos > editor->buffer_len) {
-        err_exit(editor);
-    }
 
     // 0번 인덱스부터 buffer_len 직전까지 하나씩 반복
     for (size_t i = 0; i < editor->buffer_len; i++) {
@@ -188,22 +197,28 @@ static void cmdP(Editor *editor)
 
 static void cmdnr(Editor *editor)
 {
-    /* 저장후 종료하세요 */
+    // 현재 컨텍스트에 수정 사항이 있거나, 컨텍스트가 가득 차지 않았다면 이동 불가
     if (editor->modified || editor->buffer_len < CONTEXT_SIZE) {
         err_exit(editor);
     }
 
+    // 파일 위치 계산 중 long 오버플로 방지
     if (editor->context_pos > LONG_MAX - CONTEXT_SIZE) {
         err_exit(editor);
     }
 
+    // 다음 컨텍스트의 파일 내 시작 위치 계산
     long next_pos = editor->context_pos + CONTEXT_SIZE;
 
+    // 파일 포인터를 다음 컨텍스트 시작 위치로 이동
     if (fseek(editor->file, next_pos, SEEK_SET) != 0) {
         err_exit(editor);
     }
 
+    // 다음 컨텍스트를 버퍼에 읽어 들임
     size_t next_len = fread(editor->buffer, 1, CONTEXT_SIZE, editor->file);
+
+    // 읽을 데이터가 없거나 파일 읽기 오류가 발생하면 종료
     if (next_len == 0 || ferror(editor->file)) {
         err_exit(editor);
     }
