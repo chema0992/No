@@ -176,13 +176,14 @@ static void cmdP(Editor *editor)
     }
 
     // 0번 인덱스부터 buffer_len 직전까지 하나씩 반복
-for (size_t i = 0; i < editor->buffer_len; i++) {
-    // 한 글자(i번째)씩 출력하고, 만약 실패(EOF)하면 에러 종료
-    if (putchar(editor->buffer[i]) == EOF) {
-        err_exit(editor);
+    for (size_t i = 0; i < editor->buffer_len; i++) {
+        // 한 글자(i번째)씩 출력하고, 만약 실패(EOF)하면 에러 종료
+        if (putchar(editor->buffer[i]) == EOF) {
+            err_exit(editor);
+        }
     }
-}
 
+    putchar('\n');
 }
 
 static void cmdnr(Editor *editor)
